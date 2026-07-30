@@ -14,6 +14,7 @@ export const productCreateSchema = z.object({
   fullName: z.string().optional(),
   oralName: z.string().optional(),
   name1c: z.string().optional(),
+  groupId: z.string().uuid().optional(),
   unit: z
     .enum(["шт", "кг", "м", "м2", "м3", "л", "компл", "уп"])
     .optional(),

@@ -9,13 +9,23 @@ export default function Home() {
       <main className="max-w-3xl mx-auto p-6">
         <div className="grid gap-4 sm:grid-cols-2">
           <Link
+            href="/nomenclature"
+            className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
+          >
+            <div className="text-2xl">📋</div>
+            <div className="mt-2 font-semibold">Номенклатура</div>
+            <div className="text-sm text-gray-500">
+              Справочник: группы-папки, товары и услуги, единицы, цены
+            </div>
+          </Link>
+          <Link
             href="/warehouse"
             className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
           >
             <div className="text-2xl">📦</div>
             <div className="mt-2 font-semibold">Склад и остатки</div>
             <div className="text-sm text-gray-500">
-              Номенклатура, остатки по складам, приход/расход, движения
+              Остатки по складам, приход/расход, движения
             </div>
           </Link>
           <div className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 opacity-60">

@@ -1,4 +1,4 @@
-import { desc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, desc, eq, ilike, isNull, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
 import { products, stockBalances, warehouses } from "@/db/schema";
 
@@ -8,6 +8,7 @@ export type NewProduct = {
   fullName?: string;
   oralName?: string;
   name1c?: string;
+  groupId?: string;
   unit?: "шт" | "кг" | "м" | "м2" | "м3" | "л" | "компл" | "уп";
   barcode?: string;
   minStock?: string;
@@ -17,8 +18,32 @@ export type NewProduct = {
   note?: string;
 };
 
-export async function listProducts(q?: string) {
+/**
+ * Список номенклатуры с остатками.
+ * - q задан → поиск по всем товарам (группа игнорируется).
+ * - group задан → фильтр по группе (groupId=null → корень справочника).
+ * - оба не заданы → ВСЕ товары (для доски склада).
+ */
+export async function listProducts(
+  q?: string,
+  group?: { groupId: string | null }
+) {
   const db = getDb();
+
+  let where;
+  if (q) {
+    where = or(
+      ilike(products.name, `%${q}%`),
+      ilike(products.sku, `%${q}%`),
+      ilike(products.oralName, `%${q}%`),
+      ilike(products.name1c, `%${q}%`)
+    );
+  } else if (group) {
+    where = group.groupId
+      ? eq(products.groupId, group.groupId)
+      : isNull(products.groupId);
+  }
+
   const rows = await db
     .select({
       id: products.id,
@@ -26,6 +51,7 @@ export async function listProducts(q?: string) {
       name: products.name,
       oralName: products.oralName,
       name1c: products.name1c,
+      groupId: products.groupId,
       unit: products.unit,
       price: products.price,
       costPrice: products.costPrice,
@@ -39,16 +65,7 @@ export async function listProducts(q?: string) {
     })
     .from(products)
     .leftJoin(stockBalances, eq(stockBalances.productId, products.id))
-    .where(
-      q
-        ? or(
-            ilike(products.name, `%${q}%`),
-            ilike(products.sku, `%${q}%`),
-            ilike(products.oralName, `%${q}%`),
-            ilike(products.name1c, `%${q}%`)
-          )
-        : undefined
-    )
+    .where(where)
     .groupBy(products.id)
     .orderBy(desc(products.updatedAt))
     .limit(500);
@@ -66,6 +83,7 @@ export async function createProduct(input: NewProduct) {
       fullName: input.fullName,
       oralName: input.oralName,
       name1c: input.name1c,
+      groupId: input.groupId,
       unit: input.unit ?? "шт",
       barcode: input.barcode,
       minStock: input.minStock ?? "0",
