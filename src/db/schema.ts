@@ -1,0 +1,149 @@
+import {
+  boolean,
+  integer,
+  numeric,
+  pgEnum,
+  pgTable,
+  serial,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+
+/** Типы складских движений (как в УНФ: приход / расход / перемещение / корректировка) */
+export const stockMoveTypeEnum = pgEnum("unf_stock_move_type", [
+  "IN", // приход
+  "OUT", // расход
+  "TRANSFER", // перемещение между складами
+  "ADJUST", // инвентаризация / корректировка
+  "RESERVE", // резерв под Юкан
+  "UNRESERVE", // снятие резерва
+]);
+
+/** Единицы измерения */
+export const unitEnum = pgEnum("unf_unit", [
+  "шт",
+  "кг",
+  "м",
+  "м2",
+  "м3",
+  "л",
+  "компл",
+  "уп",
+]);
+
+// ── Склады ────────────────────────────────────────────────────
+export const warehouses = pgTable("unf_warehouses", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code", { length: 32 }).notNull().unique(),
+  name: varchar("name", { length: 200 }).notNull(),
+  address: text("address"),
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+// ── Группы номенклатуры ───────────────────────────────────────
+export const productGroups = pgTable("unf_product_groups", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code", { length: 32 }),
+  name: varchar("name", { length: 200 }).notNull(),
+  parentId: uuid("parent_id"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+// ── Номенклатура ──────────────────────────────────────────────
+export const products = pgTable(
+  "unf_products",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    sku: varchar("sku", { length: 64 }).notNull(),
+    name: varchar("name", { length: 300 }).notNull(),
+    fullName: text("full_name"),
+    /** Устное/разговорное название (как в Юкан oral) */
+    oralName: varchar("oral_name", { length: 300 }),
+    /** Имя как в 1С/УНФ (name1c) — для сверки */
+    name1c: varchar("name_1c", { length: 300 }),
+    groupId: uuid("group_id").references(() => productGroups.id),
+    unit: unitEnum("unit").default("шт"),
+    barcode: varchar("barcode", { length: 64 }),
+    minStock: numeric("min_stock", { precision: 14, scale: 3 }).default("0"),
+    price: numeric("price", { precision: 14, scale: 2 }).default("0"),
+    costPrice: numeric("cost_price", { precision: 14, scale: 2 }).default("0"),
+    isActive: boolean("is_active").default(true),
+    /** Внешний id позиции/номенклатуры в Юкан (если есть) */
+    ukanNomenId: varchar("ukan_nomen_id", { length: 64 }),
+    note: text("note"),
+    createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    skuUq: uniqueIndex("unf_products_sku_uq").on(t.sku),
+  })
+);
+
+// ── Остатки по складам ────────────────────────────────────────
+export const stockBalances = pgTable(
+  "unf_stock_balances",
+  {
+    id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+    productId: uuid("product_id")
+      .references(() => products.id)
+      .notNull(),
+    warehouseId: uuid("warehouse_id")
+      .references(() => warehouses.id)
+      .notNull(),
+    qty: numeric("qty", { precision: 14, scale: 3 }).notNull().default("0"),
+    reserved: numeric("reserved", { precision: 14, scale: 3 })
+      .notNull()
+      .default("0"),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+  },
+  (t) => ({
+    productWhUq: uniqueIndex("unf_stock_product_wh_uq").on(
+      t.productId,
+      t.warehouseId
+    ),
+  })
+);
+
+// ── Движения склада ───────────────────────────────────────────
+export const stockMovements = pgTable("unf_stock_movements", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: uuid("product_id")
+    .references(() => products.id)
+    .notNull(),
+  warehouseId: uuid("warehouse_id")
+    .references(() => warehouses.id)
+    .notNull(),
+  /** Для TRANSFER — склад назначения */
+  warehouseToId: uuid("warehouse_to_id").references(() => warehouses.id),
+  moveType: stockMoveTypeEnum("move_type").notNull(),
+  qty: numeric("qty", { precision: 14, scale: 3 }).notNull(),
+  price: numeric("price", { precision: 14, scale: 2 }).default("0"),
+  totalSum: numeric("total_sum", { precision: 14, scale: 2 }).default("0"),
+  docNo: varchar("doc_no", { length: 64 }),
+  /** Ссылка на карточку/позицию Юкан */
+  ukanCardId: varchar("ukan_card_id", { length: 64 }),
+  ukanPositionId: varchar("ukan_position_id", { length: 64 }),
+  comment: text("comment"),
+  author: varchar("author", { length: 150 }),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+// ── Журнал интеграций (Юкан ↔ УНФ) ────────────────────────────
+export const integrationEvents = pgTable("unf_integration_events", {
+  id: serial("id").primaryKey(),
+  source: varchar("source", { length: 40 }).notNull().default("ukan"),
+  eventType: varchar("event_type", { length: 80 }).notNull(),
+  externalId: varchar("external_id", { length: 128 }),
+  payload: text("payload"),
+  status: varchar("status", { length: 32 }).notNull().default("received"),
+  error: text("error"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  processedAt: timestamp("processed_at", { withTimezone: true }),
+});
