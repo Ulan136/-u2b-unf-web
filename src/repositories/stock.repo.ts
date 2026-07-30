@@ -50,7 +50,7 @@ async function getOrCreateBalance(productId: string, warehouseId: string) {
   return created;
 }
 
-export async function listMovements(limit = 100) {
+export async function listMovements(limit = 100, warehouseId?: string) {
   const db = getDb();
   return db
     .select({
@@ -71,6 +71,9 @@ export async function listMovements(limit = 100) {
     .from(stockMovements)
     .innerJoin(products, eq(products.id, stockMovements.productId))
     .innerJoin(warehouses, eq(warehouses.id, stockMovements.warehouseId))
+    .where(
+      warehouseId ? eq(stockMovements.warehouseId, warehouseId) : undefined
+    )
     .orderBy(desc(stockMovements.createdAt))
     .limit(limit);
 }

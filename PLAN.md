@@ -62,7 +62,15 @@ Next.js 14 (App Router, TS) · Tailwind · Neon Postgres (pooler) · Drizzle ORM
     (GET = папка {groups,items}), `GET/PATCH/DELETE /api/counterparties/[id]`; страница `/counterparties`
     (папки, карточка: наименование, вид Юр/Физ/ИП, БИН/ИИН, Покупатель/Поставщик, телефон, email, адрес,
     контактное лицо, комментарий, архивация); плитка на главной. Smoke-тест пройден. tsc/build чисто.
-    Коммит готов локально, ждём «да» на push.
+    ЗАПУШЕНО и ЗАДЕПЛОЕНО (commit 5264e78), проверено на проде.
+
+- ✅ Шаг 4 (2026-07-30): Справочник **Склады** + перемещения. Новое:
+    `warehouses.repo.ts`, `warehouses.service.ts` (логика одного основного склада); API
+    `GET/POST /api/warehouses`, `GET/PATCH/DELETE /api/warehouses/[id]`; страница `/warehouses`
+    (CRUD, признак «основной»); в доске склада `/warehouse` — селектор склада (остаток по складу),
+    тип движения «Перемещение» (TRANSFER) со складом-получателем; listProducts/listMovements — фильтр по складу;
+    getWarehouseBoard(q, warehouseId) возвращает и список складов; плитка на главной. Smoke-тест пройден
+    (приход 20 на основной → перемещение 5 → основной 15 / Склад-2 5 / всего 20). tsc/build чисто.
 
 **НЕ готово (следующие шаги) ⬜**
 - ✅ Git: `git init`, первый коммит (25 файлов, без секретов)

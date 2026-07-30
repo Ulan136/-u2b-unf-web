@@ -5,6 +5,7 @@ import {
   listProducts,
 } from "@/repositories/products.repo";
 import { applyMove, listMovements } from "@/repositories/stock.repo";
+import { listWarehouses } from "@/repositories/warehouses.repo";
 import { getDb } from "@/lib/db";
 import { integrationEvents } from "@/db/schema";
 
@@ -70,13 +71,14 @@ export async function bootstrapWarehouse() {
   return { warehouse: wh };
 }
 
-export async function getWarehouseBoard(q?: string) {
+export async function getWarehouseBoard(q?: string, warehouseId?: string) {
   await ensureDefaultWarehouse();
-  const [items, movements] = await Promise.all([
-    listProducts(q),
-    listMovements(50),
+  const [items, movements, warehouseList] = await Promise.all([
+    listProducts(q, undefined, warehouseId),
+    listMovements(50, warehouseId),
+    listWarehouses(),
   ]);
-  return { items, movements };
+  return { items, movements, warehouses: warehouseList };
 }
 
 export async function addProduct(body: unknown) {

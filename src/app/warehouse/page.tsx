@@ -59,6 +59,8 @@ export default function WarehousePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
+  const [warehouses, setWarehouses] = useState<{ id: string; name: string; isDefault: boolean | null }[]>([]);
+  const [whFilter, setWhFilter] = useState(""); // "" = все склады
 
   const [productForm, setProductForm] = useState<null | {
     sku: string;
@@ -76,6 +78,8 @@ export default function WarehousePage() {
     qty: string;
     price: string;
     comment: string;
+    warehouseId: string;
+    warehouseToId: string;
   }>(null);
 
   const [busy, setBusy] = useState(false);
@@ -84,18 +88,21 @@ export default function WarehousePage() {
     setLoading(true);
     setError(null);
     try {
-      const qs = search.trim() ? `?q=${encodeURIComponent(search.trim())}` : "";
-      const res = await fetch(`/api/products${qs}`);
+      const qs = new URLSearchParams();
+      if (search.trim()) qs.set("q", search.trim());
+      if (whFilter) qs.set("warehouseId", whFilter);
+      const res = await fetch(`/api/products?${qs.toString()}`);
       const json = await res.json();
       if (!json.ok) throw new Error(json.error ?? "Ошибка загрузки");
       setItems(json.data.items);
       setMovements(json.data.movements);
+      setWarehouses(json.data.warehouses ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка");
     } finally {
       setLoading(false);
     }
-  }, [search]);
+  }, [search, whFilter]);
 
   useEffect(() => {
     const t = setTimeout(load, search ? 300 : 0);
@@ -145,6 +152,11 @@ export default function WarehousePage() {
           qty: moveForm.qty,
           price: moveForm.price || "0",
           comment: moveForm.comment || undefined,
+          warehouseId: moveForm.warehouseId || undefined,
+          warehouseToId:
+            moveForm.moveType === "TRANSFER"
+              ? moveForm.warehouseToId || undefined
+              : undefined,
           author: "web",
         }),
       });
@@ -159,8 +171,22 @@ export default function WarehousePage() {
     }
   }
 
+  function defaultWarehouseId() {
+    if (whFilter) return whFilter;
+    const def = warehouses.find((w) => w.isDefault) ?? warehouses[0];
+    return def?.id ?? "";
+  }
+
   function openMove(product: Item, moveType: string) {
-    setMoveForm({ product, moveType, qty: "", price: "", comment: "" });
+    setMoveForm({
+      product,
+      moveType,
+      qty: "",
+      price: "",
+      comment: "",
+      warehouseId: defaultWarehouseId(),
+      warehouseToId: "",
+    });
   }
 
   return (
@@ -170,6 +196,9 @@ export default function WarehousePage() {
           ← Главная
         </Link>
         <h1 className="text-lg font-semibold">Склад и остатки</h1>
+        <Link href="/warehouses" className="ml-auto text-sm hover:underline">
+          Справочник складов →
+        </Link>
       </header>
 
       <main className="max-w-6xl mx-auto p-4">
@@ -190,11 +219,24 @@ export default function WarehousePage() {
           >
             + Товар
           </button>
+          <select
+            value={whFilter}
+            onChange={(e) => setWhFilter(e.target.value)}
+            className="border border-gray-300 rounded px-2 py-1.5 text-sm"
+            title="Склад"
+          >
+            <option value="">Все склады</option>
+            {warehouses.map((w) => (
+              <option key={w.id} value={w.id}>
+                {w.name}
+              </option>
+            ))}
+          </select>
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Поиск: наименование, артикул, устное, имя 1С…"
-            className="ml-auto border border-gray-300 rounded px-3 py-1.5 text-sm w-80 max-w-full"
+            className="ml-auto border border-gray-300 rounded px-3 py-1.5 text-sm w-72 max-w-full"
           />
         </div>
 
@@ -435,23 +477,60 @@ export default function WarehousePage() {
           title={`${MOVE_LABELS[moveForm.moveType]} — ${moveForm.product.name}`}
           onClose={() => setMoveForm(null)}
         >
-          <Field label="Тип движения">
-            <select
-              value={moveForm.moveType}
-              onChange={(e) =>
-                setMoveForm({ ...moveForm, moveType: e.target.value })
-              }
-              className="input"
-            >
-              {Object.entries(MOVE_LABELS)
-                .filter(([k]) => k !== "TRANSFER")
-                .map(([k, v]) => (
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Тип движения">
+              <select
+                value={moveForm.moveType}
+                onChange={(e) =>
+                  setMoveForm({ ...moveForm, moveType: e.target.value })
+                }
+                className="input"
+              >
+                {Object.entries(MOVE_LABELS).map(([k, v]) => (
                   <option key={k} value={k}>
                     {v}
                   </option>
                 ))}
-            </select>
-          </Field>
+              </select>
+            </Field>
+            <Field
+              label={moveForm.moveType === "TRANSFER" ? "Склад-источник" : "Склад"}
+            >
+              <select
+                value={moveForm.warehouseId}
+                onChange={(e) =>
+                  setMoveForm({ ...moveForm, warehouseId: e.target.value })
+                }
+                className="input"
+              >
+                {warehouses.map((w) => (
+                  <option key={w.id} value={w.id}>
+                    {w.name}
+                  </option>
+                ))}
+              </select>
+            </Field>
+          </div>
+          {moveForm.moveType === "TRANSFER" && (
+            <Field label="Склад-получатель *">
+              <select
+                value={moveForm.warehouseToId}
+                onChange={(e) =>
+                  setMoveForm({ ...moveForm, warehouseToId: e.target.value })
+                }
+                className="input"
+              >
+                <option value="">— выберите —</option>
+                {warehouses
+                  .filter((w) => w.id !== moveForm.warehouseId)
+                  .map((w) => (
+                    <option key={w.id} value={w.id}>
+                      {w.name}
+                    </option>
+                  ))}
+              </select>
+            </Field>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <Field label="Количество *">
               <input
@@ -491,7 +570,12 @@ export default function WarehousePage() {
           <ModalActions
             onCancel={() => setMoveForm(null)}
             onSave={saveMove}
-            disabled={busy || !moveForm.qty.trim()}
+            disabled={
+              busy ||
+              !moveForm.qty.trim() ||
+              !moveForm.warehouseId ||
+              (moveForm.moveType === "TRANSFER" && !moveForm.warehouseToId)
+            }
             saving={busy}
           />
         </Modal>

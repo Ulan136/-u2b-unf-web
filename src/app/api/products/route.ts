@@ -5,8 +5,10 @@ import { jsonOk, handleApiError } from "@/lib/errors";
 // GET /api/products?q=  → доска склада: номенклатура с остатками + последние движения.
 export async function GET(req: NextRequest) {
   try {
-    const q = new URL(req.url).searchParams.get("q") ?? undefined;
-    const board = await getWarehouseBoard(q);
+    const sp = new URL(req.url).searchParams;
+    const q = sp.get("q") ?? undefined;
+    const warehouseId = sp.get("warehouseId") ?? undefined;
+    const board = await getWarehouseBoard(q, warehouseId);
     return jsonOk(board);
   } catch (e) {
     return handleApiError(e);

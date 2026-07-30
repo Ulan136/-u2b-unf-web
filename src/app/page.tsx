@@ -35,7 +35,17 @@ export default function Home() {
             <div className="text-2xl">📦</div>
             <div className="mt-2 font-semibold">Склад и остатки</div>
             <div className="text-sm text-gray-500">
-              Остатки по складам, приход/расход, движения
+              Остатки по складам, приход/расход, перемещения
+            </div>
+          </Link>
+          <Link
+            href="/warehouses"
+            className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
+          >
+            <div className="text-2xl">🏬</div>
+            <div className="mt-2 font-semibold">Склады</div>
+            <div className="text-sm text-gray-500">
+              Справочник складов: несколько складов, основной склад
             </div>
           </Link>
           <div className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 opacity-60">

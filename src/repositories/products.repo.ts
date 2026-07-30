@@ -45,7 +45,8 @@ export type ProductPatch = {
  */
 export async function listProducts(
   q?: string,
-  group?: { groupId: string | null }
+  group?: { groupId: string | null },
+  warehouseId?: string
 ) {
   const db = getDb();
 
@@ -88,7 +89,15 @@ export async function listProducts(
       ),
     })
     .from(products)
-    .leftJoin(stockBalances, eq(stockBalances.productId, products.id))
+    .leftJoin(
+      stockBalances,
+      warehouseId
+        ? and(
+            eq(stockBalances.productId, products.id),
+            eq(stockBalances.warehouseId, warehouseId)
+          )
+        : eq(stockBalances.productId, products.id)
+    )
     .where(where)
     .groupBy(products.id)
     .orderBy(desc(products.updatedAt))
