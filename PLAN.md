@@ -71,6 +71,16 @@ Next.js 14 (App Router, TS) · Tailwind · Neon Postgres (pooler) · Drizzle ORM
     тип движения «Перемещение» (TRANSFER) со складом-получателем; listProducts/listMovements — фильтр по складу;
     getWarehouseBoard(q, warehouseId) возвращает и список складов; плитка на главной. Smoke-тест пройден
     (приход 20 на основной → перемещение 5 → основной 15 / Склад-2 5 / всего 20). tsc/build чисто.
+    ЗАПУШЕНО и ЗАДЕПЛОЕНО (commit 954573c), проверено на проде.
+
+- ✅ Шаг 5 (2026-07-30): Документ **Заказ покупателя**. Новое:
+    таблицы `unf_customer_orders` (seq автонумер, статус enum, totalSum, isActive),
+    `unf_customer_order_items` (qty/price/amount) + db:push; `customerOrders.repo.ts`,
+    `customerOrder.service.ts` (расчёт сумм строк и итога); API `GET/POST /api/customer-orders`,
+    `GET/PATCH/DELETE /api/customer-orders/[id]`; страница `/orders` (список + редактор:
+    выбор клиента и товаров через поиск-пикер, строки с кол-вом/ценой/суммой, статус, склад отгрузки,
+    итог); плитка на главной. DELETE=архив. Smoke-тест пройден (итог 300→500, статусы, архив).
+    tsc/build чисто. Коммит готов локально, ждём «да» на push.
 
 **НЕ готово (следующие шаги) ⬜**
 - ✅ Git: `git init`, первый коммит (25 файлов, без секретов)
