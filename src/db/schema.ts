@@ -137,6 +137,38 @@ export const stockMovements = pgTable("unf_stock_movements", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+// ── Группы контрагентов ───────────────────────────────────────
+export const counterpartyGroups = pgTable("unf_counterparty_groups", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code", { length: 32 }),
+  name: varchar("name", { length: 200 }).notNull(),
+  parentId: uuid("parent_id"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+// ── Контрагенты (клиенты/поставщики) ──────────────────────────
+export const counterparties = pgTable("unf_counterparties", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  code: varchar("code", { length: 32 }),
+  name: varchar("name", { length: 300 }).notNull(), // Наименование (рабочее)
+  fullName: text("full_name"), // Полное юридическое наименование
+  /** Юридическое / Физическое / ИП */
+  legalType: varchar("legal_type", { length: 20 }).notNull().default("Юридическое"),
+  bin: varchar("bin", { length: 32 }), // БИН / ИИН / ИНН
+  isCustomer: boolean("is_customer").default(false), // Покупатель
+  isSupplier: boolean("is_supplier").default(false), // Поставщик
+  groupId: uuid("group_id").references(() => counterpartyGroups.id),
+  phone: varchar("phone", { length: 64 }),
+  email: varchar("email", { length: 128 }),
+  address: text("address"),
+  contactPerson: varchar("contact_person", { length: 200 }),
+  comment: text("comment"),
+  isActive: boolean("is_active").default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
 // ── Журнал интеграций (Юкан ↔ УНФ) ────────────────────────────
 export const integrationEvents = pgTable("unf_integration_events", {
   id: serial("id").primaryKey(),

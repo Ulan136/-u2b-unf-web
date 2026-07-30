@@ -19,6 +19,16 @@ export default function Home() {
             </div>
           </Link>
           <Link
+            href="/counterparties"
+            className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
+          >
+            <div className="text-2xl">👥</div>
+            <div className="mt-2 font-semibold">Контрагенты</div>
+            <div className="text-sm text-gray-500">
+              Справочник: клиенты и поставщики, реквизиты, БИН/ИИН
+            </div>
+          </Link>
+          <Link
             href="/warehouse"
             className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
           >

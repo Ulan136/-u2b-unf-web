@@ -54,6 +54,14 @@ Next.js 14 (App Router, TS) · Tailwind · Neon Postgres (pooler) · Drizzle ORM
     nomenclature.service — `getProduct/updateProduct/archiveProduct` + `productUpdateSchema`;
     страница /nomenclature — полная карточка (все поля, вид, себестоимость, штрихкод, комментарий),
     клик по товару открывает карточку, кнопка «Пометить на удаление». Smoke-тест пройден. tsc/build чисто.
+    ЗАПУШЕНО и ЗАДЕПЛОЕНО (commit 4ade6e8), проверено на проде.
+
+- ✅ Шаг 3 (2026-07-30): Справочник **Контрагенты** (клиенты/поставщики). Новое:
+    таблицы `unf_counterparty_groups`, `unf_counterparties` + db:push; `counterparties.repo.ts`,
+    `counterparty.service.ts`; API `GET/POST /api/counterparty-groups`, `GET/POST /api/counterparties`
+    (GET = папка {groups,items}), `GET/PATCH/DELETE /api/counterparties/[id]`; страница `/counterparties`
+    (папки, карточка: наименование, вид Юр/Физ/ИП, БИН/ИИН, Покупатель/Поставщик, телефон, email, адрес,
+    контактное лицо, комментарий, архивация); плитка на главной. Smoke-тест пройден. tsc/build чисто.
     Коммит готов локально, ждём «да» на push.
 
 **НЕ готово (следующие шаги) ⬜**
