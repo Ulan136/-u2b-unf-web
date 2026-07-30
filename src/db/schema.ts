@@ -69,6 +69,8 @@ export const products = pgTable(
     /** Имя как в 1С/УНФ (name1c) — для сверки */
     name1c: varchar("name_1c", { length: 300 }),
     groupId: uuid("group_id").references(() => productGroups.id),
+    /** Вид номенклатуры (как в УНФ): Товар / Услуга / Работа / Набор */
+    kind: varchar("kind", { length: 20 }).notNull().default("Товар"),
     unit: unitEnum("unit").default("шт"),
     barcode: varchar("barcode", { length: 64 }),
     minStock: numeric("min_stock", { precision: 14, scale: 3 }).default("0"),

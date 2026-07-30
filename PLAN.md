@@ -46,7 +46,15 @@ Next.js 14 (App Router, TS) · Tailwind · Neon Postgres (pooler) · Drizzle ORM
     `productGroups.repo.ts`, `nomenclature.service.ts`, `GET/POST /api/product-groups`,
     `GET /api/nomenclature?groupId=&q=`, страница `/nomenclature` (навигация по папкам, создание группы/товара
     в текущей папке), плитка на главной. products.repo: фильтр по группе + groupId при создании.
-    Проверено smoke-тестом (группа→товар в группе→навигация). tsc/build чисто. Коммит готов, ждём «да» на push.
+    Проверено smoke-тестом (группа→товар в группе→навигация). tsc/build чисто. ЗАПУШЕНО (commit e63e90d).
+
+- ✅ Шаг 2 (2026-07-30): **Карточка номенклатуры** (открытие/редактирование). Новое:
+    поле `kind` (Товар/Услуга/Работа/Набор) в схеме + db:push; `GET/PATCH/DELETE /api/products/[id]`;
+    в products.repo — `findProductById`, `updateProduct`, `archiveProduct`, фильтр `is_active=true` в списках;
+    nomenclature.service — `getProduct/updateProduct/archiveProduct` + `productUpdateSchema`;
+    страница /nomenclature — полная карточка (все поля, вид, себестоимость, штрихкод, комментарий),
+    клик по товару открывает карточку, кнопка «Пометить на удаление». Smoke-тест пройден. tsc/build чисто.
+    Коммит готов локально, ждём «да» на push.
 
 **НЕ готово (следующие шаги) ⬜**
 - ✅ Git: `git init`, первый коммит (25 файлов, без секретов)

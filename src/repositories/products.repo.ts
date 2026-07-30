@@ -9,6 +9,7 @@ export type NewProduct = {
   oralName?: string;
   name1c?: string;
   groupId?: string;
+  kind?: string;
   unit?: "шт" | "кг" | "м" | "м2" | "м3" | "л" | "компл" | "уп";
   barcode?: string;
   minStock?: string;
@@ -16,6 +17,24 @@ export type NewProduct = {
   costPrice?: string;
   ukanNomenId?: string;
   note?: string;
+};
+
+export type ProductPatch = {
+  sku?: string;
+  name?: string;
+  fullName?: string | null;
+  oralName?: string | null;
+  name1c?: string | null;
+  groupId?: string | null;
+  kind?: string;
+  unit?: NewProduct["unit"];
+  barcode?: string | null;
+  minStock?: string | null;
+  price?: string | null;
+  costPrice?: string | null;
+  ukanNomenId?: string | null;
+  note?: string | null;
+  isActive?: boolean;
 };
 
 /**
@@ -30,19 +49,24 @@ export async function listProducts(
 ) {
   const db = getDb();
 
-  let where;
+  const conds = [eq(products.isActive, true)]; // архивные не показываем
   if (q) {
-    where = or(
-      ilike(products.name, `%${q}%`),
-      ilike(products.sku, `%${q}%`),
-      ilike(products.oralName, `%${q}%`),
-      ilike(products.name1c, `%${q}%`)
+    conds.push(
+      or(
+        ilike(products.name, `%${q}%`),
+        ilike(products.sku, `%${q}%`),
+        ilike(products.oralName, `%${q}%`),
+        ilike(products.name1c, `%${q}%`)
+      )!
     );
   } else if (group) {
-    where = group.groupId
-      ? eq(products.groupId, group.groupId)
-      : isNull(products.groupId);
+    conds.push(
+      group.groupId
+        ? eq(products.groupId, group.groupId)
+        : isNull(products.groupId)
+    );
   }
+  const where = and(...conds);
 
   const rows = await db
     .select({
@@ -84,6 +108,7 @@ export async function createProduct(input: NewProduct) {
       oralName: input.oralName,
       name1c: input.name1c,
       groupId: input.groupId,
+      kind: input.kind ?? "Товар",
       unit: input.unit ?? "шт",
       barcode: input.barcode,
       minStock: input.minStock ?? "0",
@@ -128,4 +153,53 @@ export async function ensureDefaultWarehouse() {
     })
     .returning();
   return wh;
+}
+
+/** Один товар со суммарным остатком по всем складам. */
+export async function findProductById(id: string) {
+  const db = getDb();
+  const [row] = await db
+    .select({
+      id: products.id,
+      sku: products.sku,
+      name: products.name,
+      fullName: products.fullName,
+      oralName: products.oralName,
+      name1c: products.name1c,
+      groupId: products.groupId,
+      kind: products.kind,
+      unit: products.unit,
+      barcode: products.barcode,
+      minStock: products.minStock,
+      price: products.price,
+      costPrice: products.costPrice,
+      isActive: products.isActive,
+      ukanNomenId: products.ukanNomenId,
+      note: products.note,
+      qty: sql<string>`coalesce((select sum(${stockBalances.qty}) from ${stockBalances} where ${stockBalances.productId} = ${products.id}), 0)`,
+      reserved: sql<string>`coalesce((select sum(${stockBalances.reserved}) from ${stockBalances} where ${stockBalances.productId} = ${products.id}), 0)`,
+    })
+    .from(products)
+    .where(eq(products.id, id))
+    .limit(1);
+  return row ?? null;
+}
+
+export async function updateProduct(id: string, patch: ProductPatch) {
+  const db = getDb();
+  const values: Record<string, unknown> = { updatedAt: new Date() };
+  for (const [k, v] of Object.entries(patch)) {
+    if (v !== undefined) values[k] = v;
+  }
+  const [row] = await db
+    .update(products)
+    .set(values)
+    .where(eq(products.id, id))
+    .returning();
+  return row ?? null;
+}
+
+/** Пометка на удаление / архив (не теряем историю). */
+export async function archiveProduct(id: string) {
+  return updateProduct(id, { isActive: false });
 }
