@@ -128,6 +128,16 @@ export default function Home() {
               Отчёт: что и на сколько закуплено за период (по приходам)
             </div>
           </Link>
+          <Link
+            href="/reports/settlements"
+            className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
+          >
+            <div className="text-2xl">🤝</div>
+            <div className="mt-2 font-semibold">Взаиморасчёты</div>
+            <div className="text-sm text-gray-500">
+              Кто сколько должен: долги клиентов и наши долги поставщикам
+            </div>
+          </Link>
           <div className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 opacity-60">
             <div className="text-2xl">🔗</div>
             <div className="mt-2 font-semibold">Интеграция с Юкан</div>
