@@ -612,6 +612,17 @@ function ReceiptEditor({
               💵 Оплата
             </button>
           )}
+          {ed.id && (
+            <a
+              href={`/receipts/${ed.id}/print`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded text-sm border border-gray-300 hover:bg-gray-50"
+              title="Печатная форма накладной"
+            >
+              🖨 Печать
+            </a>
+          )}
           {ed.id && !received && (
             <button
               onClick={onArchive}

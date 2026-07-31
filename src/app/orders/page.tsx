@@ -629,6 +629,17 @@ function OrderEditor({
               💵 Оплата
             </button>
           )}
+          {ed.id && (
+            <a
+              href={`/orders/${ed.id}/print`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded text-sm border border-gray-300 hover:bg-gray-50"
+              title="Печатная форма заказа"
+            >
+              🖨 Печать
+            </a>
+          )}
           {ed.id && !shipped && (
             <button
               onClick={onArchive}
