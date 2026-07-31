@@ -17,6 +17,8 @@ export const operationCreateSchema = z.object({
   amount: z.coerce.number().positive("Сумма должна быть > 0"),
   opDate: z.coerce.date().optional(),
   comment: z.string().optional().nullable(),
+  sourceType: z.enum(["customer_order", "receipt"]).optional().nullable(),
+  sourceId: z.string().uuid().optional().nullable(),
 });
 
 // ── Счета ───────────────────────────────────────────────
@@ -72,5 +74,7 @@ export async function createOperation(body: unknown) {
     amount: data.amount.toFixed(2),
     opDate: data.opDate,
     comment: data.comment ?? null,
+    sourceType: data.sourceType ?? null,
+    sourceId: data.sourceId ?? null,
   });
 }

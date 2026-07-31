@@ -2,6 +2,7 @@ import { z } from "zod";
 import * as repo from "@/repositories/receipts.repo";
 import { applyMove } from "@/repositories/stock.repo";
 import { ensureDefaultWarehouse } from "@/repositories/products.repo";
+import { sumPaidBySource } from "@/repositories/money.repo";
 
 /** Бизнес-логика документа «Поступление» (приходная накладная). */
 
@@ -46,7 +47,8 @@ export async function get(id: string) {
   const receipt = await repo.getById(id);
   if (!receipt) throw new Error("Поступление не найдено");
   const items = await repo.getItems(id);
-  return { receipt, items };
+  const paid = await sumPaidBySource("receipt", id);
+  return { receipt: { ...receipt, paid }, items };
 }
 
 export async function create(body: unknown) {

@@ -17,6 +17,8 @@ export type NewOperation = {
   amount: string;
   opDate?: Date;
   comment?: string | null;
+  sourceType?: string | null;
+  sourceId?: string | null;
 };
 
 // Баланс счёта = сумма приходов минус сумма расходов (через leftJoin+groupBy).
@@ -143,7 +145,24 @@ export async function createOperation(input: NewOperation) {
       amount: input.amount,
       opDate: input.opDate,
       comment: input.comment,
+      sourceType: input.sourceType ?? null,
+      sourceId: input.sourceId ?? null,
     })
     .returning();
   return row;
+}
+
+/** Сумма оплат, привязанных к документу (для «оплачено X из суммы»). */
+export async function sumPaidBySource(sourceType: string, sourceId: string) {
+  const db = getDb();
+  const [row] = await db
+    .select({ sum: sql<string>`coalesce(sum(${moneyOperations.amount}), 0)` })
+    .from(moneyOperations)
+    .where(
+      and(
+        eq(moneyOperations.sourceType, sourceType),
+        eq(moneyOperations.sourceId, sourceId)
+      )
+    );
+  return Number(row?.sum ?? 0);
 }

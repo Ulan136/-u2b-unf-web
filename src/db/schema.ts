@@ -328,6 +328,9 @@ export const moneyOperations = pgTable("unf_money_operations", {
   counterpartyId: uuid("counterparty_id").references(() => counterparties.id),
   amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
   comment: text("comment"),
+  /** Документ-источник оплаты: 'customer_order' | 'receipt' | null */
+  sourceType: varchar("source_type", { length: 20 }),
+  sourceId: uuid("source_id"),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 

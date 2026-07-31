@@ -151,7 +151,15 @@ Next.js 14 (App Router, TS) · Tailwind · Neon Postgres (pooler) · Drizzle ORM
     страница `/reports/settlements` (две сводные карточки + таблица по контрагентам); плитка на главной.
     ⚠️ Грабли: GET-роут без query-параметров Next 14 делает статическим → добавлять force-dynamic для «живых» отчётов.
     Также `Array.from(map.values())` вместо spread (иначе TS2802 downlevelIteration).
-    Smoke-тест пройден (клиент должен 200, мы должны 200). tsc/build чисто. Коммит готов, ждём «да» на push.
+    Smoke-тест пройден (клиент должен 200, мы должны 200). tsc/build чисто. ЗАПУШЕНО и ЗАДЕПЛОЕНО (commit 973297a), проверено на проде.
+- ✅ Шаг 15 (2026-07-31): **Оплата по документу**. Новое: поля `source_type`/`source_id` в
+    `unf_money_operations` + db:push; `money.repo` — createOperation принимает source*, `sumPaidBySource`;
+    `money.service.operationCreateSchema` — sourceType(enum)/sourceId; в `customerOrder.service.get` и
+    `receipt.service.get` добавлено `paid` (сумма привязанных оплат); общий компонент
+    `src/components/PaymentModal.tsx`; в редакторах заказа и поступления — кнопка «💵 Оплата»
+    (заказ→Приход, поступление→Расход, привязка sourceType/sourceId, контрагент/сумма подставляются),
+    строка «Оплачено X · осталось Y». Smoke-тест пройден (заказ paid=300, поступление paid=400,
+    оплаты не смешиваются, баланс счёта −100). tsc/build чисто. Коммит готов, ждём «да» на push.
 - ⬜ Дашборд на главной — ПО ПРОСЬБЕ ПОЛЬЗОВАТЕЛЯ делать В КОНЦЕ (сводка: стоимость склада, продажи за месяц, топ, мало на остатке)
 - ⬜ PWA — ПОЛЬЗОВАТЕЛЬ ДАСТ ИНСТРУКЦИЮ ПОТОМ (установка на телефон)
 - ✅ Git: `git init`, первый коммит (25 файлов, без секретов)

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
+import { PaymentModal } from "@/components/PaymentModal";
 
 type ReceiptRow = {
   id: string;
@@ -32,6 +33,7 @@ type Editor = {
   comment: string;
   items: LineItem[];
   receivedAt: string | null;
+  paid: number;
 };
 
 const STATUSES = ["Новый", "В работе", "Выполнен", "Отменён"];
@@ -55,7 +57,9 @@ export default function ReceiptsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [warehouses, setWarehouses] = useState<{ id: string; name: string }[]>([]);
+  const [accounts, setAccounts] = useState<{ id: string; name: string }[]>([]);
   const [ed, setEd] = useState<Editor | null>(null);
+  const [payOpen, setPayOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const loadList = useCallback(async () => {
@@ -79,6 +83,10 @@ export default function ReceiptsPage() {
       .then((r) => r.json())
       .then((j) => j.ok && setWarehouses(j.data))
       .catch(() => {});
+    fetch("/api/money/accounts")
+      .then((r) => r.json())
+      .then((j) => j.ok && setAccounts(j.data))
+      .catch(() => {});
   }, [loadList]);
 
   function openNew() {
@@ -91,6 +99,7 @@ export default function ReceiptsPage() {
       comment: "",
       items: [],
       receivedAt: null,
+      paid: 0,
     });
   }
 
@@ -111,6 +120,7 @@ export default function ReceiptsPage() {
         status: receipt.status,
         comment: receipt.comment ?? "",
         receivedAt: receipt.receivedAt ?? null,
+        paid: Number(receipt.paid ?? 0),
         items: items.map((it: LineItem & { productName: string }) => ({
           productId: it.productId,
           productName: it.productName,
@@ -194,6 +204,40 @@ export default function ReceiptsPage() {
     }
   }
 
+  async function pay(data: { accountId: string; amount: string; opDate: string; comment: string }) {
+    if (!ed?.id) return;
+    setBusy(true);
+    setError(null);
+    const rid = ed.id;
+    try {
+      const res = await fetch("/api/money/operations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          kind: "Расход",
+          accountId: data.accountId,
+          amount: data.amount,
+          counterpartyId: ed.counterpartyId || undefined,
+          comment: data.comment || `Оплата поставщику по ${docNo(ed.seq)}`,
+          opDate: data.opDate || undefined,
+          sourceType: "receipt",
+          sourceId: rid,
+        }),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error ?? "Ошибка оплаты");
+      setPayOpen(false);
+      await openEdit(rid);
+      await loadList();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  const edTotal = ed ? ed.items.reduce((s, it) => s + num(it.qty) * num(it.price), 0) : 0;
+
   return (
     <div className="min-h-screen">
       <header className="bg-yellow-400 text-gray-900 px-6 py-3 shadow flex items-center gap-4">
@@ -276,7 +320,21 @@ export default function ReceiptsPage() {
           onSave={save}
           onArchive={archive}
           onReceive={receive}
+          onPay={() => setPayOpen(true)}
           onClose={() => setEd(null)}
+        />
+      )}
+
+      {ed && payOpen && (
+        <PaymentModal
+          title={`Оплата поставщику по ${docNo(ed.seq)}`}
+          kindLabel="Расход денег — оплата поставщику"
+          accounts={accounts}
+          defaultAmount={Math.max(0, edTotal - ed.paid)}
+          defaultComment={`Оплата поставщику по ${docNo(ed.seq)}`}
+          busy={busy}
+          onPay={pay}
+          onClose={() => setPayOpen(false)}
         />
       )}
     </div>
@@ -303,6 +361,7 @@ function ReceiptEditor({
   onSave,
   onArchive,
   onReceive,
+  onPay,
   onClose,
 }: {
   ed: Editor;
@@ -312,6 +371,7 @@ function ReceiptEditor({
   onSave: () => void;
   onArchive: () => void;
   onReceive: () => void;
+  onPay: () => void;
   onClose: () => void;
 }) {
   const received = !!ed.receivedAt;
@@ -525,10 +585,33 @@ function ReceiptEditor({
             />
           </label>
 
-          <div className="text-right text-base font-semibold">Итого: {money(total)}</div>
+          <div className="text-right space-y-0.5">
+            <div className="text-base font-semibold">Итого: {money(total)}</div>
+            {ed.id && (
+              <div className="text-sm text-gray-500">
+                Оплачено: <span className="text-red-600 font-mono">{money(ed.paid)}</span>
+                {ed.paid < total && (
+                  <>
+                    {" "}· осталось{" "}
+                    <span className="text-red-600 font-mono">{money(total - ed.paid)}</span>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        <div className="px-4 py-3 border-t border-gray-200 flex items-center gap-2">
+        <div className="px-4 py-3 border-t border-gray-200 flex items-center gap-2 flex-wrap">
+          {ed.id && (
+            <button
+              onClick={onPay}
+              disabled={busy}
+              className="px-3 py-1.5 rounded text-sm bg-blue-600 text-white font-medium hover:bg-blue-700 disabled:opacity-50"
+              title="Зарегистрировать оплату поставщику по этому поступлению"
+            >
+              💵 Оплата
+            </button>
+          )}
           {ed.id && !received && (
             <button
               onClick={onArchive}

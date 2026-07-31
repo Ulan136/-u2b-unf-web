@@ -2,6 +2,7 @@ import { z } from "zod";
 import * as repo from "@/repositories/customerOrders.repo";
 import { applyMove, getBalance } from "@/repositories/stock.repo";
 import { ensureDefaultWarehouse } from "@/repositories/products.repo";
+import { sumPaidBySource } from "@/repositories/money.repo";
 
 /** Бизнес-логика документа «Заказ покупателя». Считает суммы строк и итог. */
 
@@ -47,7 +48,8 @@ export async function get(id: string) {
   const order = await repo.getById(id);
   if (!order) throw new Error("Заказ не найден");
   const items = await repo.getItems(id);
-  return { order, items };
+  const paid = await sumPaidBySource("customer_order", id);
+  return { order: { ...order, paid }, items };
 }
 
 export async function create(body: unknown) {
