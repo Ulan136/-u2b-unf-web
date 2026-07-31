@@ -1,6 +1,11 @@
-import { and, asc, eq, ilike, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, ilike, isNotNull, lt, or, sql } from "drizzle-orm";
 import { getDb } from "@/lib/db";
-import { products, stockBalances } from "@/db/schema";
+import {
+  customerOrderItems,
+  customerOrders,
+  products,
+  stockBalances,
+} from "@/db/schema";
 
 /** ТОЛЬКО запросы Drizzle для отчётов. */
 
@@ -42,4 +47,37 @@ export async function stockReport(opts: { warehouseId?: string; q?: string }) {
     .where(and(...conds))
     .groupBy(products.id)
     .orderBy(asc(products.name));
+}
+
+/**
+ * Продажи за период: по отгруженным заказам (shipped_at в диапазоне [from, to)).
+ * Агрегат по товарам: сколько продано и на какую сумму.
+ */
+export async function salesReport(opts: { from: Date; to: Date }) {
+  const db = getDb();
+  return db
+    .select({
+      productId: products.id,
+      sku: products.sku,
+      name: products.name,
+      unit: products.unit,
+      qty: sql<string>`coalesce(sum(${customerOrderItems.qty}), 0)`,
+      amount: sql<string>`coalesce(sum(${customerOrderItems.amount}), 0)`,
+    })
+    .from(customerOrderItems)
+    .innerJoin(
+      customerOrders,
+      eq(customerOrders.id, customerOrderItems.orderId)
+    )
+    .innerJoin(products, eq(products.id, customerOrderItems.productId))
+    .where(
+      and(
+        eq(customerOrders.isActive, true),
+        isNotNull(customerOrders.shippedAt),
+        gte(customerOrders.shippedAt, opts.from),
+        lt(customerOrders.shippedAt, opts.to)
+      )
+    )
+    .groupBy(products.id)
+    .orderBy(desc(sql`sum(${customerOrderItems.amount})`));
 }
