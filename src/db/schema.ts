@@ -246,6 +246,39 @@ export const receiptItems = pgTable("unf_receipt_items", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+// ── Заказы поставщикам (документ закупки) ─────────────────────
+export const purchaseOrders = pgTable("unf_purchase_orders", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  seq: serial("seq").notNull(),
+  orderDate: timestamp("order_date", { withTimezone: true }).defaultNow(),
+  counterpartyId: uuid("counterparty_id")
+    .references(() => counterparties.id)
+    .notNull(),
+  warehouseId: uuid("warehouse_id").references(() => warehouses.id),
+  status: orderStatusEnum("status").notNull().default("Новый"),
+  comment: text("comment"),
+  totalSum: numeric("total_sum", { precision: 14, scale: 2 })
+    .notNull()
+    .default("0"),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const purchaseOrderItems = pgTable("unf_purchase_order_items", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  orderId: uuid("order_id")
+    .references(() => purchaseOrders.id)
+    .notNull(),
+  productId: uuid("product_id")
+    .references(() => products.id)
+    .notNull(),
+  qty: numeric("qty", { precision: 14, scale: 3 }).notNull(),
+  price: numeric("price", { precision: 14, scale: 2 }).notNull().default("0"),
+  amount: numeric("amount", { precision: 14, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 // ── Журнал интеграций (Юкан ↔ УНФ) ────────────────────────────
 export const integrationEvents = pgTable("unf_integration_events", {
   id: serial("id").primaryKey(),

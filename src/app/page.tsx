@@ -59,6 +59,16 @@ export default function Home() {
             </div>
           </Link>
           <Link
+            href="/purchase-orders"
+            className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
+          >
+            <div className="text-2xl">📝</div>
+            <div className="mt-2 font-semibold">Заказы поставщикам</div>
+            <div className="text-sm text-gray-500">
+              Документы закупки: что заказываем у поставщика, количество, цена
+            </div>
+          </Link>
+          <Link
             href="/receipts"
             className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
           >
