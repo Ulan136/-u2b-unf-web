@@ -58,6 +58,16 @@ export default function Home() {
               Документы продаж: клиент, товары, количество, цена, статус
             </div>
           </Link>
+          <Link
+            href="/receipts"
+            className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
+          >
+            <div className="text-2xl">📥</div>
+            <div className="mt-2 font-semibold">Поступления (приход)</div>
+            <div className="text-sm text-gray-500">
+              Приходные накладные: приём товара от поставщика на склад
+            </div>
+          </Link>
           <div className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 opacity-60">
             <div className="text-2xl">🔗</div>
             <div className="mt-2 font-semibold">Интеграция с Юкан</div>

@@ -211,6 +211,41 @@ export const customerOrderItems = pgTable("unf_customer_order_items", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+// ── Поступления (приходная накладная, документ) ───────────────
+export const receipts = pgTable("unf_receipts", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  seq: serial("seq").notNull(),
+  receiptDate: timestamp("receipt_date", { withTimezone: true }).defaultNow(),
+  counterpartyId: uuid("counterparty_id")
+    .references(() => counterparties.id)
+    .notNull(),
+  warehouseId: uuid("warehouse_id").references(() => warehouses.id),
+  status: orderStatusEnum("status").notNull().default("Новый"),
+  comment: text("comment"),
+  totalSum: numeric("total_sum", { precision: 14, scale: 2 })
+    .notNull()
+    .default("0"),
+  /** Момент оприходования (прихода на склад). null = не проведён. */
+  receivedAt: timestamp("received_at", { withTimezone: true }),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const receiptItems = pgTable("unf_receipt_items", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  receiptId: uuid("receipt_id")
+    .references(() => receipts.id)
+    .notNull(),
+  productId: uuid("product_id")
+    .references(() => products.id)
+    .notNull(),
+  qty: numeric("qty", { precision: 14, scale: 3 }).notNull(),
+  price: numeric("price", { precision: 14, scale: 2 }).notNull().default("0"),
+  amount: numeric("amount", { precision: 14, scale: 2 }).notNull().default("0"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 // ── Журнал интеграций (Юкан ↔ УНФ) ────────────────────────────
 export const integrationEvents = pgTable("unf_integration_events", {
   id: serial("id").primaryKey(),
