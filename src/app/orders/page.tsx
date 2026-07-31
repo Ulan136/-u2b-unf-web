@@ -640,6 +640,17 @@ function OrderEditor({
               🖨 Печать
             </a>
           )}
+          {ed.id && (
+            <a
+              href={`/orders/${ed.id}/invoice`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-3 py-1.5 rounded text-sm border border-gray-300 hover:bg-gray-50"
+              title="Счёт на оплату с банковскими реквизитами"
+            >
+              🧾 Счёт
+            </a>
+          )}
           {ed.id && !shipped && (
             <button
               onClick={onArchive}
