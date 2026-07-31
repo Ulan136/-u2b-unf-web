@@ -361,6 +361,38 @@ export const specificationItems = pgTable("unf_specification_items", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+// ── Производство (документ выпуска) ───────────────────────────
+export const productions = pgTable("unf_productions", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  seq: serial("seq").notNull(),
+  prodDate: timestamp("prod_date", { withTimezone: true }).defaultNow(),
+  productId: uuid("product_id")
+    .references(() => products.id)
+    .notNull(), // готовое изделие
+  specId: uuid("spec_id").references(() => specifications.id),
+  qty: numeric("qty", { precision: 14, scale: 3 }).notNull().default("1"), // кол-во к выпуску
+  warehouseId: uuid("warehouse_id").references(() => warehouses.id),
+  status: orderStatusEnum("status").notNull().default("Новый"),
+  cost: numeric("cost", { precision: 14, scale: 2 }).notNull().default("0"), // себестоимость выпуска
+  comment: text("comment"),
+  producedAt: timestamp("produced_at", { withTimezone: true }), // null = не проведён
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const productionItems = pgTable("unf_production_items", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  productionId: uuid("production_id")
+    .references(() => productions.id)
+    .notNull(),
+  materialProductId: uuid("material_product_id")
+    .references(() => products.id)
+    .notNull(),
+  qty: numeric("qty", { precision: 14, scale: 3 }).notNull(), // всего к списанию
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 // ── Журнал интеграций (Юкан ↔ УНФ) ────────────────────────────
 export const integrationEvents = pgTable("unf_integration_events", {
   id: serial("id").primaryKey(),

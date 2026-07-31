@@ -49,6 +49,16 @@ export default function Home() {
             </div>
           </Link>
           <Link
+            href="/productions"
+            className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
+          >
+            <div className="text-2xl">🏭</div>
+            <div className="mt-2 font-semibold">Производство</div>
+            <div className="text-sm text-gray-500">
+              Выпуск: списание материалов и приход готовой продукции
+            </div>
+          </Link>
+          <Link
             href="/warehouse"
             className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
           >

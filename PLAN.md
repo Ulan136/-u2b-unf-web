@@ -198,9 +198,17 @@ Next.js 14 (App Router, TS) · Tailwind · Neon Postgres (pooler) · Drizzle ORM
     leftJoin+groupBy), `specification.service.ts`; API `GET/POST /api/specifications`,
     `GET/PATCH/DELETE /api/specifications/[id]`; страница `/specifications` (список + редактор:
     выбор изделия и материалов через поиск, кол-во на выпуск); плитка на главной. Smoke-тест пройден
-    (спец с 2 материалами, чтение, правка состава). tsc/build чисто. Коммит готов, ждём «да» на push.
-- ⬜ Шаг 22: Документ **«Производство»** — по спецификации списать материалы (OUT, проверка остатков),
-    оприходовать готовую продукцию (IN), себестоимость изделия = сумма себестоимостей материалов.
+    (спец с 2 материалами, чтение, правка состава). tsc/build чисто. ЗАПУШЕНО и ЗАДЕПЛОЕНО (commit 604b0e4), прод проверен.
+- ✅ Шаг 22 (2026-07-31): Документ **«Производство»**. Новое: таблицы `unf_productions`
+    (seq, productId=изделие, specId?, qty выпуска, cost, producedAt, isActive) и `unf_production_items`
+    (materialProductId, qty) + db:push; `productions.repo.ts`, `production.service.ts` с `produce()`:
+    предпроверка остатков материалов → списание OUT по каждому материалу → приход IN готового изделия
+    (price=unitCost) → пересчёт `costPrice` изделия из материалов → producedAt+статус, защита от повтора;
+    API `GET/POST /api/productions`, `GET/PATCH/DELETE /api/productions/[id]`, `POST /api/productions/[id]/produce`;
+    страница `/productions` (список + редактор: изделие, кол-во, «Заполнить по спецификации», материалы,
+    «🏭 Произвести», баннер о проведении с блокировкой); плитка на главной. Smoke-тест пройден
+    (10 столов: доска 100→80, саморез 100→50, столы +10, себест 4250, costPrice изделия→425;
+    повтор и нехватка отклонены). tsc/build чисто. Коммит готов, ждём «да» на push.
 
 ### Отложено на потом (по просьбе пользователя):
 - ⬜ Синхронизация с Юканом (частично заложена: integration_events, handleUkanEvent) — вернуться после производства
