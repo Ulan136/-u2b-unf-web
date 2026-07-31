@@ -279,6 +279,25 @@ export const purchaseOrderItems = pgTable("unf_purchase_order_items", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+// ── Организации (реквизиты своей фирмы) ───────────────────────
+export const organizations = pgTable("unf_organizations", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 300 }).notNull(), // Наименование
+  fullName: text("full_name"), // Полное наименование
+  bin: varchar("bin", { length: 32 }), // БИН / ИИН
+  address: text("address"), // Юридический адрес
+  phone: varchar("phone", { length: 64 }),
+  email: varchar("email", { length: 128 }),
+  director: varchar("director", { length: 200 }), // Руководитель
+  bankName: varchar("bank_name", { length: 200 }), // Банк
+  bankAccount: varchar("bank_account", { length: 64 }), // Расчётный счёт (IBAN)
+  bankBik: varchar("bank_bik", { length: 32 }), // БИК
+  isDefault: boolean("is_default").default(false), // Основная организация
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
 // ── Журнал интеграций (Юкан ↔ УНФ) ────────────────────────────
 export const integrationEvents = pgTable("unf_integration_events", {
   id: serial("id").primaryKey(),

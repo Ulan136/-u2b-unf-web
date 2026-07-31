@@ -29,6 +29,16 @@ export default function Home() {
             </div>
           </Link>
           <Link
+            href="/organizations"
+            className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
+          >
+            <div className="text-2xl">🏢</div>
+            <div className="mt-2 font-semibold">Организации</div>
+            <div className="text-sm text-gray-500">
+              Реквизиты своей фирмы: БИН, адрес, банк, руководитель
+            </div>
+          </Link>
+          <Link
             href="/warehouse"
             className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
           >
