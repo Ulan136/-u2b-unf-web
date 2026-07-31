@@ -5,7 +5,18 @@ import {
   findProductById,
   updateProduct as updateProductRepo,
   archiveProduct as archiveProductRepo,
+  getAllSkus,
+  bulkCreateProducts,
 } from "@/repositories/products.repo";
+
+const UNITS = ["шт", "кг", "м", "м2", "м3", "л", "компл", "уп"] as const;
+
+/** Нормализация числа из строки (запятая как разделитель, пробелы) → "0.00". */
+function numStr(v: unknown): string {
+  const s = String(v ?? "").replace(/\s/g, "").replace(",", ".");
+  const n = Number(s);
+  return Number.isFinite(n) && n >= 0 ? String(n) : "0";
+}
 
 const UNIT = z.enum(["шт", "кг", "м", "м2", "м3", "л", "компл", "уп"]);
 
@@ -73,4 +84,53 @@ export async function archiveProduct(id: string) {
   const existing = await findProductById(id);
   if (!existing) throw new Error("Товар не найден");
   return archiveProductRepo(id);
+}
+
+/**
+ * Импорт номенклатуры пачкой. Строки: { sku, name, unit?, price?, costPrice? }.
+ * Пропускает дубли по артикулу (в файле и в базе) и строки без артикула/наименования.
+ */
+export async function importProducts(rawRows: unknown) {
+  const rows = Array.isArray(rawRows) ? rawRows : [];
+  const existing = new Set(await getAllSkus());
+  const seen = new Set<string>();
+
+  const toCreate: {
+    sku: string;
+    name: string;
+    unit: (typeof UNITS)[number];
+    price: string;
+    costPrice: string;
+  }[] = [];
+  const errors: { row: number; reason: string }[] = [];
+  let skipped = 0;
+
+  rows.forEach((raw, i) => {
+    const r = (raw ?? {}) as Record<string, unknown>;
+    const sku = String(r.sku ?? "").trim();
+    const name = String(r.name ?? "").trim();
+    if (!sku || !name) {
+      errors.push({ row: i + 1, reason: "нет артикула или наименования" });
+      return;
+    }
+    if (existing.has(sku) || seen.has(sku)) {
+      skipped++;
+      return;
+    }
+    seen.add(sku);
+    const unitRaw = String(r.unit ?? "").trim();
+    const unit = ((UNITS as readonly string[]).includes(unitRaw)
+      ? unitRaw
+      : "шт") as (typeof UNITS)[number];
+    toCreate.push({
+      sku,
+      name,
+      unit,
+      price: numStr(r.price),
+      costPrice: numStr(r.costPrice),
+    });
+  });
+
+  const created = await bulkCreateProducts(toCreate);
+  return { created, skipped, errors, total: rows.length };
 }

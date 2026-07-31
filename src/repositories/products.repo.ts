@@ -212,3 +212,31 @@ export async function updateProduct(id: string, patch: ProductPatch) {
 export async function archiveProduct(id: string) {
   return updateProduct(id, { isActive: false });
 }
+
+/** Все артикулы (для проверки дублей при импорте). */
+export async function getAllSkus() {
+  const db = getDb();
+  const rows = await db.select({ sku: products.sku }).from(products);
+  return rows.map((r) => r.sku);
+}
+
+/** Массовое создание номенклатуры (импорт). Остатки не создаём — считаются как 0. */
+export async function bulkCreateProducts(rows: NewProduct[]) {
+  if (!rows.length) return 0;
+  const db = getDb();
+  const created = await db
+    .insert(products)
+    .values(
+      rows.map((r) => ({
+        sku: r.sku.trim(),
+        name: r.name.trim(),
+        kind: r.kind ?? "Товар",
+        unit: r.unit ?? "шт",
+        price: r.price ?? "0",
+        costPrice: r.costPrice ?? "0",
+        name1c: r.name1c,
+      }))
+    )
+    .returning({ id: products.id });
+  return created.length;
+}

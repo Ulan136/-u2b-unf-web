@@ -74,6 +74,7 @@ export default function NomenclaturePage() {
 
   const [groupForm, setGroupForm] = useState<null | { name: string }>(null);
   const [productForm, setProductForm] = useState<ProductForm | null>(null);
+  const [importOpen, setImportOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const currentGroupId = path.length ? path[path.length - 1].id : null;
@@ -258,6 +259,12 @@ export default function NomenclaturePage() {
             className="bg-blue-600 text-white px-3 py-1.5 rounded text-sm font-medium hover:bg-blue-700"
           >
             + Группа
+          </button>
+          <button
+            onClick={() => setImportOpen(true)}
+            className="border border-gray-300 px-3 py-1.5 rounded text-sm font-medium hover:bg-gray-50"
+          >
+            ⬆ Импорт
           </button>
           <input
             value={search}
@@ -534,6 +541,177 @@ export default function NomenclaturePage() {
           </div>
         </Modal>
       )}
+
+      {importOpen && (
+        <ImportModal
+          onClose={() => setImportOpen(false)}
+          onImported={() => {
+            setImportOpen(false);
+            load();
+          }}
+        />
+      )}
+    </div>
+  );
+}
+
+type ParsedRow = { sku: string; name: string; unit: string; price: string; costPrice: string };
+
+function parseImport(raw: string): ParsedRow[] {
+  const out: ParsedRow[] = [];
+  for (const line of raw.split(/\r?\n/)) {
+    if (!line.trim()) continue;
+    const delim = line.includes("\t") ? "\t" : line.includes(";") ? ";" : ",";
+    const c = line.split(delim).map((s) => s.trim());
+    const sku = c[0] ?? "";
+    const name = c[1] ?? "";
+    // пропуск строки-заголовка
+    if (/артикул/i.test(sku) && /наимен/i.test(name)) continue;
+    out.push({ sku, name, unit: c[2] ?? "", price: c[3] ?? "", costPrice: c[4] ?? "" });
+  }
+  return out;
+}
+
+function ImportModal({
+  onClose,
+  onImported,
+}: {
+  onClose: () => void;
+  onImported: () => void;
+}) {
+  const [raw, setRaw] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [result, setResult] = useState<null | {
+    created: number;
+    skipped: number;
+    errors: { row: number; reason: string }[];
+    total: number;
+  }>(null);
+  const rows = parseImport(raw);
+  const valid = rows.filter((r) => r.sku && r.name);
+
+  async function doImport() {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/products/import", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ rows }),
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error ?? "Ошибка");
+      setResult(json.data);
+    } catch {
+      setResult(null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="fixed inset-0 bg-black/40 flex items-start justify-center p-4 overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-lg w-full max-w-2xl mt-8 mb-10">
+        <div className="px-4 py-3 border-b border-gray-200 flex items-center justify-between">
+          <h3 className="font-semibold">Импорт номенклатуры</h3>
+          <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
+            ✕
+          </button>
+        </div>
+        <div className="p-4 space-y-3">
+          {result ? (
+            <div className="space-y-2 text-sm">
+              <div className="bg-green-50 border border-green-200 text-green-800 rounded px-3 py-2">
+                Импортировано: <b>{result.created}</b> · пропущено дублей: {result.skipped} · строк
+                всего: {result.total}
+              </div>
+              {result.errors.length > 0 && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 rounded px-3 py-2 max-h-40 overflow-y-auto">
+                  Ошибок в строках: {result.errors.length}
+                  <ul className="list-disc list-inside text-xs mt-1">
+                    {result.errors.slice(0, 20).map((e) => (
+                      <li key={e.row}>
+                        строка {e.row}: {e.reason}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+              <div className="flex justify-end">
+                <button
+                  onClick={onImported}
+                  className="px-4 py-1.5 rounded text-sm bg-green-600 text-white font-medium hover:bg-green-700"
+                >
+                  Готово
+                </button>
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="text-xs text-gray-500">
+                Вставьте список из Excel (выделите ячейки → копировать → вставить сюда). Колонки по
+                порядку: <b>Артикул · Наименование · Ед. · Цена · Себестоимость</b>. Первая строка-заголовок
+                пропускается. Дубли по артикулу не создаются.
+              </div>
+              <textarea
+                autoFocus
+                value={raw}
+                onChange={(e) => setRaw(e.target.value)}
+                placeholder={"Артикул\tНаименование\tЕд.\tЦена\tСебестоимость\n001\tГвоздь 100мм\tкг\t500\t300\n002\tДоска 50х150\tшт\t1200\t900"}
+                className="w-full border border-gray-300 rounded px-3 py-2 text-sm font-mono h-40"
+              />
+              {rows.length > 0 && (
+                <div className="border border-gray-200 rounded overflow-x-auto max-h-52 overflow-y-auto">
+                  <table className="w-full text-xs">
+                    <thead className="bg-gray-50 text-gray-500 text-left sticky top-0">
+                      <tr>
+                        <th className="px-2 py-1">Артикул</th>
+                        <th className="px-2 py-1">Наименование</th>
+                        <th className="px-2 py-1">Ед.</th>
+                        <th className="px-2 py-1 text-right">Цена</th>
+                        <th className="px-2 py-1 text-right">Себест.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {rows.slice(0, 100).map((r, i) => {
+                        const bad = !r.sku || !r.name;
+                        return (
+                          <tr key={i} className={bad ? "bg-red-50" : ""}>
+                            <td className="px-2 py-1 font-mono">{r.sku}</td>
+                            <td className="px-2 py-1">{r.name}</td>
+                            <td className="px-2 py-1">{r.unit}</td>
+                            <td className="px-2 py-1 text-right">{r.price}</td>
+                            <td className="px-2 py-1 text-right">{r.costPrice}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+              <div className="flex items-center justify-between pt-1">
+                <span className="text-xs text-gray-500">
+                  Распознано строк: {rows.length} · корректных: {valid.length}
+                </span>
+                <div className="flex gap-2">
+                  <button
+                    onClick={onClose}
+                    className="px-3 py-1.5 rounded text-sm border border-gray-300 hover:bg-gray-50"
+                  >
+                    Отмена
+                  </button>
+                  <button
+                    onClick={doImport}
+                    disabled={busy || valid.length === 0}
+                    className="px-4 py-1.5 rounded text-sm bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-50"
+                  >
+                    {busy ? "Импорт…" : `Импортировать (${valid.length})`}
+                  </button>
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
