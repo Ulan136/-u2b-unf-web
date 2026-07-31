@@ -31,6 +31,7 @@ type Editor = {
   status: string;
   comment: string;
   items: LineItem[];
+  shippedAt: string | null;
 };
 
 const STATUSES = ["Новый", "В работе", "Выполнен", "Отменён"];
@@ -89,6 +90,7 @@ export default function OrdersPage() {
       status: "Новый",
       comment: "",
       items: [],
+      shippedAt: null,
     });
   }
 
@@ -108,6 +110,7 @@ export default function OrdersPage() {
         warehouseId: order.warehouseId ?? "",
         status: order.status,
         comment: order.comment ?? "",
+        shippedAt: order.shippedAt ?? null,
         items: items.map((it: LineItem & { productName: string }) => ({
           productId: it.productId,
           productName: it.productName,
@@ -167,6 +170,32 @@ export default function OrdersPage() {
       const json = await res.json();
       if (!json.ok) throw new Error(json.error ?? "Ошибка");
       setEd(null);
+      await loadList();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Ошибка");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function ship() {
+    if (!ed?.id) return;
+    if (
+      !confirm(
+        "Отгрузить заказ? Товар спишется со склада (движение «Расход»). Действие необратимо."
+      )
+    )
+      return;
+    setBusy(true);
+    setError(null);
+    const orderId = ed.id;
+    try {
+      const res = await fetch(`/api/customer-orders/${orderId}/ship`, {
+        method: "POST",
+      });
+      const json = await res.json();
+      if (!json.ok) throw new Error(json.error ?? "Ошибка отгрузки");
+      await openEdit(orderId); // перечитать заказ с отметкой об отгрузке
       await loadList();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Ошибка");
@@ -258,6 +287,7 @@ export default function OrdersPage() {
           busy={busy}
           onSave={save}
           onArchive={archive}
+          onShip={ship}
           onClose={() => setEd(null)}
         />
       )}
@@ -284,6 +314,7 @@ function OrderEditor({
   busy,
   onSave,
   onArchive,
+  onShip,
   onClose,
 }: {
   ed: Editor;
@@ -292,8 +323,10 @@ function OrderEditor({
   busy: boolean;
   onSave: () => void;
   onArchive: () => void;
+  onShip: () => void;
   onClose: () => void;
 }) {
+  const shipped = !!ed.shippedAt;
   const total = useMemo(
     () => ed.items.reduce((s, it) => s + num(it.qty) * num(it.price), 0),
     [ed.items]
@@ -337,6 +370,12 @@ function OrderEditor({
         </div>
 
         <div className="p-4 space-y-3">
+          {shipped && (
+            <div className="bg-green-50 border border-green-200 text-green-800 text-sm rounded px-3 py-2">
+              ✓ Заказ отгружён {String(ed.shippedAt).slice(0, 10)} — товар списан со
+              склада. Редактирование недоступно.
+            </div>
+          )}
           {/* Шапка */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <label className="block">
@@ -509,7 +548,7 @@ function OrderEditor({
         </div>
 
         <div className="px-4 py-3 border-t border-gray-200 flex items-center gap-2">
-          {ed.id && (
+          {ed.id && !shipped && (
             <button
               onClick={onArchive}
               disabled={busy}
@@ -518,20 +557,32 @@ function OrderEditor({
               Пометить на удаление
             </button>
           )}
+          {ed.id && !shipped && (
+            <button
+              onClick={onShip}
+              disabled={busy || ed.items.length === 0}
+              className="px-3 py-1.5 rounded text-sm bg-orange-500 text-white font-medium hover:bg-orange-600 disabled:opacity-50"
+              title="Списать товар со склада по этому заказу"
+            >
+              📦 Отгрузить
+            </button>
+          )}
           <div className="ml-auto flex gap-2">
             <button
               onClick={onClose}
               className="px-3 py-1.5 rounded text-sm border border-gray-300 hover:bg-gray-50"
             >
-              Отмена
+              {shipped ? "Закрыть" : "Отмена"}
             </button>
-            <button
-              onClick={onSave}
-              disabled={busy || !ed.counterpartyId || ed.items.length === 0}
-              className="px-4 py-1.5 rounded text-sm bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-50"
-            >
-              {busy ? "Сохранение…" : "Записать"}
-            </button>
+            {!shipped && (
+              <button
+                onClick={onSave}
+                disabled={busy || !ed.counterpartyId || ed.items.length === 0}
+                className="px-4 py-1.5 rounded text-sm bg-green-600 text-white font-medium hover:bg-green-700 disabled:opacity-50"
+              >
+                {busy ? "Сохранение…" : "Записать"}
+              </button>
+            )}
           </div>
         </div>
       </div>

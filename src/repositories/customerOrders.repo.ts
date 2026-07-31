@@ -63,6 +63,7 @@ export async function getById(id: string) {
       customerName: counterparties.name,
       warehouseId: customerOrders.warehouseId,
       warehouseName: warehouses.name,
+      shippedAt: customerOrders.shippedAt,
     })
     .from(customerOrders)
     .innerJoin(
@@ -128,7 +129,11 @@ export async function replaceItems(orderId: string, items: OrderItemRow[]) {
 
 export async function updateHeader(
   id: string,
-  patch: Partial<OrderHeader> & { updatedAt?: Date; isActive?: boolean }
+  patch: Partial<OrderHeader> & {
+    updatedAt?: Date;
+    isActive?: boolean;
+    shippedAt?: Date | null;
+  }
 ) {
   const db = getDb();
   const values: Record<string, unknown> = { updatedAt: new Date() };

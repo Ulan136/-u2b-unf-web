@@ -50,6 +50,22 @@ async function getOrCreateBalance(productId: string, warehouseId: string) {
   return created;
 }
 
+/** Остаток товара на складе (только чтение), null если записи нет. */
+export async function getBalance(productId: string, warehouseId: string) {
+  const db = getDb();
+  const [row] = await db
+    .select()
+    .from(stockBalances)
+    .where(
+      and(
+        eq(stockBalances.productId, productId),
+        eq(stockBalances.warehouseId, warehouseId)
+      )
+    )
+    .limit(1);
+  return row ?? null;
+}
+
 export async function listMovements(limit = 100, warehouseId?: string) {
   const db = getDb();
   return db

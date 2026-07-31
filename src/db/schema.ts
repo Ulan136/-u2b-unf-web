@@ -190,6 +190,8 @@ export const customerOrders = pgTable("unf_customer_orders", {
   totalSum: numeric("total_sum", { precision: 14, scale: 2 })
     .notNull()
     .default("0"),
+  /** Момент отгрузки (списания со склада). null = не отгружен. */
+  shippedAt: timestamp("shipped_at", { withTimezone: true }),
   isActive: boolean("is_active").notNull().default(true),
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),

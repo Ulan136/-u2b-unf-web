@@ -1,5 +1,7 @@
 import { z } from "zod";
 import * as repo from "@/repositories/customerOrders.repo";
+import { applyMove, getBalance } from "@/repositories/stock.repo";
+import { ensureDefaultWarehouse } from "@/repositories/products.repo";
 
 /** Бизнес-логика документа «Заказ покупателя». Считает суммы строк и итог. */
 
@@ -84,4 +86,53 @@ export async function archive(id: string) {
   const existing = await repo.findById(id);
   if (!existing) throw new Error("Заказ не найден");
   return repo.archive(id);
+}
+
+/**
+ * Отгрузка по заказу: списывает товары со склада (движения OUT) и помечает
+ * заказ отгруженным. Перед списанием проверяет достаточность остатков —
+ * либо отгружаем весь заказ, либо ничего (не оставляем частичную отгрузку).
+ */
+export async function shipOrder(id: string) {
+  const order = await repo.findById(id);
+  if (!order) throw new Error("Заказ не найден");
+  if (order.shippedAt) throw new Error("Заказ уже отгружен");
+
+  const items = await repo.getItems(id);
+  if (!items.length) throw new Error("В заказе нет товаров для отгрузки");
+
+  const warehouseId =
+    order.warehouseId ?? (await ensureDefaultWarehouse()).id;
+
+  // Предварительная проверка остатков по всем строкам.
+  const shortages: string[] = [];
+  for (const it of items) {
+    const bal = await getBalance(it.productId, warehouseId);
+    const free = Number(bal?.qty ?? 0) - Number(bal?.reserved ?? 0);
+    if (free < Number(it.qty)) {
+      shortages.push(`${it.productName}: нужно ${it.qty}, свободно ${free}`);
+    }
+  }
+  if (shortages.length) {
+    throw new Error("Недостаточно остатков для отгрузки — " + shortages.join("; "));
+  }
+
+  const docNumber = `ЗП-${String(order.seq).padStart(5, "0")}`;
+  for (const it of items) {
+    await applyMove({
+      productId: it.productId,
+      moveType: "OUT",
+      qty: it.qty,
+      price: it.price,
+      warehouseId,
+      docNo: docNumber,
+      comment: `Отгрузка по заказу ${docNumber}`,
+      author: "web",
+    });
+  }
+
+  return repo.updateHeader(id, {
+    shippedAt: new Date(),
+    status: "Выполнен",
+  });
 }
