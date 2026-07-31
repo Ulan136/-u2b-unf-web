@@ -138,6 +138,16 @@ export default function Home() {
               Кто сколько должен: долги клиентов и наши долги поставщикам
             </div>
           </Link>
+          <Link
+            href="/reports/cashflow"
+            className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
+          >
+            <div className="text-2xl">💸</div>
+            <div className="mt-2 font-semibold">Движение денег</div>
+            <div className="text-sm text-gray-500">
+              Приход/расход по счетам за период, входящий и исходящий остаток
+            </div>
+          </Link>
           <div className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 opacity-60">
             <div className="text-2xl">🔗</div>
             <div className="mt-2 font-semibold">Интеграция с Юкан</div>

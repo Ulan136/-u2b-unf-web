@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import {
   customerOrderItems,
   customerOrders,
+  moneyOperations,
   products,
   receipts,
   receiptItems,
@@ -82,6 +83,38 @@ export async function salesReport(opts: { from: Date; to: Date }) {
     )
     .groupBy(products.id)
     .orderBy(desc(sql`sum(${customerOrderItems.amount})`));
+}
+
+/** Приход/расход по счетам за период [from, to). */
+export async function cashFlow(opts: { from: Date; to: Date }) {
+  const db = getDb();
+  return db
+    .select({
+      accountId: moneyOperations.accountId,
+      income: sql<string>`coalesce(sum(case when ${moneyOperations.kind} = 'Приход' then ${moneyOperations.amount} else 0 end), 0)`,
+      expense: sql<string>`coalesce(sum(case when ${moneyOperations.kind} = 'Расход' then ${moneyOperations.amount} else 0 end), 0)`,
+    })
+    .from(moneyOperations)
+    .where(
+      and(
+        gte(moneyOperations.opDate, opts.from),
+        lt(moneyOperations.opDate, opts.to)
+      )
+    )
+    .groupBy(moneyOperations.accountId);
+}
+
+/** Входящие остатки по счетам на момент `before` (все операции до даты). */
+export async function openingBalances(before: Date) {
+  const db = getDb();
+  return db
+    .select({
+      accountId: moneyOperations.accountId,
+      opening: sql<string>`coalesce(sum(case when ${moneyOperations.kind} = 'Приход' then ${moneyOperations.amount} else -${moneyOperations.amount} end), 0)`,
+    })
+    .from(moneyOperations)
+    .where(lt(moneyOperations.opDate, before))
+    .groupBy(moneyOperations.accountId);
 }
 
 /**
