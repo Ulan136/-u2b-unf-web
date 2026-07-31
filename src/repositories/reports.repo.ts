@@ -4,6 +4,8 @@ import {
   customerOrderItems,
   customerOrders,
   products,
+  receipts,
+  receiptItems,
   stockBalances,
 } from "@/db/schema";
 
@@ -80,4 +82,34 @@ export async function salesReport(opts: { from: Date; to: Date }) {
     )
     .groupBy(products.id)
     .orderBy(desc(sql`sum(${customerOrderItems.amount})`));
+}
+
+/**
+ * Закупки за период: по оприходованным поступлениям (received_at в [from, to)).
+ * Агрегат по товарам: сколько закуплено и на какую сумму.
+ */
+export async function purchaseReport(opts: { from: Date; to: Date }) {
+  const db = getDb();
+  return db
+    .select({
+      productId: products.id,
+      sku: products.sku,
+      name: products.name,
+      unit: products.unit,
+      qty: sql<string>`coalesce(sum(${receiptItems.qty}), 0)`,
+      amount: sql<string>`coalesce(sum(${receiptItems.amount}), 0)`,
+    })
+    .from(receiptItems)
+    .innerJoin(receipts, eq(receipts.id, receiptItems.receiptId))
+    .innerJoin(products, eq(products.id, receiptItems.productId))
+    .where(
+      and(
+        eq(receipts.isActive, true),
+        isNotNull(receipts.receivedAt),
+        gte(receipts.receivedAt, opts.from),
+        lt(receipts.receivedAt, opts.to)
+      )
+    )
+    .groupBy(products.id)
+    .orderBy(desc(sql`sum(${receiptItems.amount})`));
 }
