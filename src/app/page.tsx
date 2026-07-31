@@ -1,10 +1,14 @@
 import Link from "next/link";
+import { UserMenu } from "@/components/UserMenu";
 
 export default function Home() {
   return (
     <div className="min-h-screen">
-      <header className="bg-yellow-400 text-gray-900 px-6 py-3 shadow">
+      <header className="bg-yellow-400 text-gray-900 px-6 py-3 shadow flex items-center gap-4">
         <h1 className="text-lg font-semibold">Веб-УНФ</h1>
+        <div className="ml-auto">
+          <UserMenu />
+        </div>
       </header>
       <main className="max-w-3xl mx-auto p-6">
         <div className="grid gap-4 sm:grid-cols-2">
