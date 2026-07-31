@@ -134,6 +134,15 @@ Next.js 14 (App Router, TS) · Tailwind · Neon Postgres (pooler) · Drizzle ORM
     `reports.repo.purchaseReport` (агрегат по товарам за период received_at), `report.service.purchaseReport`;
     API `GET /api/reports/purchases?from=&to=`; страница `/reports/purchases` (период, закуплено/сумма, итог);
     плитка на главной. Smoke-тест пройден (12×40=480 в текущем месяце; прошлый период пуст). tsc/build чисто.
+    ЗАПУШЕНО и ЗАДЕПЛОЕНО (commit b1314ed), проверено на проде.
+- ✅ Шаг 13 (2026-07-31): Блок **«Деньги» (касса/банк)**. Новое: enum-ы `unf_money_account_kind`,
+    `unf_money_op_kind`; таблицы `unf_money_accounts` (name, kind, isDefault) и `unf_money_operations`
+    (seq, opDate, kind Приход/Расход, accountId, counterpartyId?, amount, comment) + db:push;
+    `money.repo.ts` (счета с балансами через leftJoin+groupBy, операции), `money.service.ts`
+    (логика основного счёта, валидация операций); API `/api/money/accounts` (+[id]), `/api/money/operations`;
+    страница `/money` (карточки счетов с балансами, лента операций, +Приход/−Расход, +Счёт, привязка контрагента);
+    плитка на главной. ⚠️ Пойман баг: коррелированный подзапрос баланса в Drizzle давал 0 — переписал на
+    leftJoin+groupBy (raw SQL давал верно). Smoke-тест пройден (приход 5000−расход 2000=3000; итого 13000). tsc/build чисто.
     Коммит готов локально, ждём «да» на push.
 - ⬜ Дашборд на главной — ПО ПРОСЬБЕ ПОЛЬЗОВАТЕЛЯ делать В КОНЦЕ (сводка: стоимость склада, продажи за месяц, топ, мало на остатке)
 - ⬜ PWA — ПОЛЬЗОВАТЕЛЬ ДАСТ ИНСТРУКЦИЮ ПОТОМ (установка на телефон)

@@ -298,6 +298,39 @@ export const organizations = pgTable("unf_organizations", {
   updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
 });
 
+// ── Деньги: счета/кассы и операции ────────────────────────────
+export const moneyAccountKindEnum = pgEnum("unf_money_account_kind", [
+  "Касса",
+  "Банк",
+]);
+export const moneyOpKindEnum = pgEnum("unf_money_op_kind", [
+  "Приход",
+  "Расход",
+]);
+
+export const moneyAccounts = pgTable("unf_money_accounts", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  name: varchar("name", { length: 200 }).notNull(),
+  kind: moneyAccountKindEnum("kind").notNull().default("Касса"),
+  isDefault: boolean("is_default").default(false),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
+export const moneyOperations = pgTable("unf_money_operations", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  seq: serial("seq").notNull(),
+  opDate: timestamp("op_date", { withTimezone: true }).defaultNow(),
+  kind: moneyOpKindEnum("kind").notNull(),
+  accountId: uuid("account_id")
+    .references(() => moneyAccounts.id)
+    .notNull(),
+  counterpartyId: uuid("counterparty_id").references(() => counterparties.id),
+  amount: numeric("amount", { precision: 14, scale: 2 }).notNull(),
+  comment: text("comment"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 // ── Журнал интеграций (Юкан ↔ УНФ) ────────────────────────────
 export const integrationEvents = pgTable("unf_integration_events", {
   id: serial("id").primaryKey(),

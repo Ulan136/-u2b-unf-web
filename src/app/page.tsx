@@ -89,6 +89,16 @@ export default function Home() {
             </div>
           </Link>
           <Link
+            href="/money"
+            className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
+          >
+            <div className="text-2xl">💰</div>
+            <div className="mt-2 font-semibold">Деньги (касса и банк)</div>
+            <div className="text-sm text-gray-500">
+              Счета и кассы, приход/расход денег, балансы
+            </div>
+          </Link>
+          <Link
             href="/reports/stock"
             className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
           >
