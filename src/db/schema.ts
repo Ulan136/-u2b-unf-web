@@ -334,6 +334,33 @@ export const moneyOperations = pgTable("unf_money_operations", {
   createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
 });
 
+// ── Спецификации (состав изделия / BOM) ───────────────────────
+export const specifications = pgTable("unf_specifications", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  productId: uuid("product_id")
+    .references(() => products.id)
+    .notNull(), // готовое изделие
+  name: varchar("name", { length: 200 }).notNull().default("Основная"),
+  outputQty: numeric("output_qty", { precision: 14, scale: 3 })
+    .notNull()
+    .default("1"), // сколько единиц изделия даёт спецификация
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+  updatedAt: timestamp("updated_at", { withTimezone: true }).defaultNow(),
+});
+
+export const specificationItems = pgTable("unf_specification_items", {
+  id: uuid("id").primaryKey().default(sql`gen_random_uuid()`),
+  specId: uuid("spec_id")
+    .references(() => specifications.id)
+    .notNull(),
+  materialProductId: uuid("material_product_id")
+    .references(() => products.id)
+    .notNull(), // материал
+  qty: numeric("qty", { precision: 14, scale: 3 }).notNull(), // расход на выпуск (на outputQty изделий)
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow(),
+});
+
 // ── Журнал интеграций (Юкан ↔ УНФ) ────────────────────────────
 export const integrationEvents = pgTable("unf_integration_events", {
   id: serial("id").primaryKey(),
