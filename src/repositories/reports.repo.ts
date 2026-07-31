@@ -85,6 +85,39 @@ export async function salesReport(opts: { from: Date; to: Date }) {
     .orderBy(desc(sql`sum(${customerOrderItems.amount})`));
 }
 
+/**
+ * Прибыль за период: по отгруженным заказам. Выручка (сумма строк) и
+ * себестоимость (кол-во × себестоимость товара) по каждому товару.
+ */
+export async function profitReport(opts: { from: Date; to: Date }) {
+  const db = getDb();
+  return db
+    .select({
+      productId: products.id,
+      sku: products.sku,
+      name: products.name,
+      qty: sql<string>`coalesce(sum(${customerOrderItems.qty}), 0)`,
+      revenue: sql<string>`coalesce(sum(${customerOrderItems.amount}), 0)`,
+      cost: sql<string>`coalesce(sum(${customerOrderItems.qty} * ${products.costPrice}), 0)`,
+    })
+    .from(customerOrderItems)
+    .innerJoin(
+      customerOrders,
+      eq(customerOrders.id, customerOrderItems.orderId)
+    )
+    .innerJoin(products, eq(products.id, customerOrderItems.productId))
+    .where(
+      and(
+        eq(customerOrders.isActive, true),
+        isNotNull(customerOrders.shippedAt),
+        gte(customerOrders.shippedAt, opts.from),
+        lt(customerOrders.shippedAt, opts.to)
+      )
+    )
+    .groupBy(products.id)
+    .orderBy(desc(sql`sum(${customerOrderItems.amount})`));
+}
+
 /** Приход/расход по счетам за период [from, to). */
 export async function cashFlow(opts: { from: Date; to: Date }) {
   const db = getDb();

@@ -123,6 +123,57 @@ export async function purchaseReport(opts: { from?: string; to?: string }) {
   };
 }
 
+/** Отчёт «Прибыль» за период: выручка − себестоимость по отгруженным заказам. */
+export async function profitReport(opts: { from?: string; to?: string }) {
+  const now = new Date();
+  const defFrom = new Date(now.getFullYear(), now.getMonth(), 1);
+  const defTo = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+
+  const from = opts.from ? new Date(`${opts.from}T00:00:00`) : defFrom;
+  const toBase = opts.to ? new Date(`${opts.to}T00:00:00`) : defTo;
+  const toExclusive = new Date(toBase);
+  toExclusive.setDate(toExclusive.getDate() + 1);
+
+  const raw = await repo.profitReport({ from, to: toExclusive });
+
+  const rows = raw.map((r) => {
+    const revenue = +Number(r.revenue ?? 0).toFixed(2);
+    const cost = +Number(r.cost ?? 0).toFixed(2);
+    const profit = +(revenue - cost).toFixed(2);
+    return {
+      productId: r.productId,
+      sku: r.sku,
+      name: r.name,
+      qty: Number(r.qty ?? 0),
+      revenue,
+      cost,
+      profit,
+      margin: revenue > 0 ? +((profit / revenue) * 100).toFixed(1) : 0,
+    };
+  });
+
+  const revenue = +rows.reduce((s, r) => s + r.revenue, 0).toFixed(2);
+  const cost = +rows.reduce((s, r) => s + r.cost, 0).toFixed(2);
+  const profit = +(revenue - cost).toFixed(2);
+  const totals = {
+    revenue,
+    cost,
+    profit,
+    margin: revenue > 0 ? +((profit / revenue) * 100).toFixed(1) : 0,
+  };
+
+  const ymd3 = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
+      d.getDate()
+    ).padStart(2, "0")}`;
+
+  return {
+    rows,
+    totals,
+    period: { from: opts.from ?? ymd3(defFrom), to: opts.to ?? ymd3(defTo) },
+  };
+}
+
 /** Отчёт «Движение денег» за период: входящий остаток, приход, расход, исходящий по счетам. */
 export async function cashFlowReport(opts: { from?: string; to?: string }) {
   const now = new Date();
