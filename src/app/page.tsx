@@ -68,6 +68,16 @@ export default function Home() {
               Приходные накладные: приём товара от поставщика на склад
             </div>
           </Link>
+          <Link
+            href="/reports/stock"
+            className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 hover:border-yellow-400"
+          >
+            <div className="text-2xl">📊</div>
+            <div className="mt-2 font-semibold">Остатки товаров</div>
+            <div className="text-sm text-gray-500">
+              Отчёт: остатки по складам и итого, стоимость запасов
+            </div>
+          </Link>
           <div className="block bg-white border border-gray-200 rounded-lg shadow-sm p-5 opacity-60">
             <div className="text-2xl">🔗</div>
             <div className="mt-2 font-semibold">Интеграция с Юкан</div>
